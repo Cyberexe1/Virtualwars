@@ -15,6 +15,7 @@ import translateRouter from './routes/translate';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '5000', 10);
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet({
@@ -24,6 +25,8 @@ app.use(helmet({
       connectSrc: ["'self'", 'https://*.googleapis.com', 'https://*.firebaseio.com'],
     },
   },
+  // Prevent server fingerprinting
+  hidePoweredBy: true,
 }));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -33,8 +36,17 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173')
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // In production: reject requests with no origin (direct curl/Postman access)
+    // In development: allow no-origin for local testing convenience
+    if (!origin) {
+      if (IS_PROD) {
+        callback(new Error('CORS: direct requests not allowed in production'));
+      } else {
+        callback(null, true);
+      }
+      return;
+    }
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin '${origin}' not allowed`));
@@ -48,9 +60,10 @@ app.use(cors({
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// ─── Health Check (restricted — no sensitive info exposed) ───────────────────
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'civic-clarity-api', timestamp: new Date().toISOString() });
+  // Only return minimal status — no timestamps or service names that aid fingerprinting
+  res.json({ status: 'ok' });
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
@@ -68,15 +81,15 @@ app.use((_req, res) => {
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[Server] Unhandled error:', err.message);
-  res.status(500).json({ error: 'Internal server error', code: 'internal-error' });
+  // Never expose internal error details in production
+  const message = IS_PROD ? 'Internal server error' : err.message;
+  res.status(500).json({ error: message, code: 'internal-error' });
 });
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 Civic Clarity API running on http://localhost:${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}`);
-  console.log(`   Health check: http://localhost:${PORT}/health\n`);
+  console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}\n`);
 });
 
 export default app;

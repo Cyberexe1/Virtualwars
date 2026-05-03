@@ -14,7 +14,8 @@ const MAX_LENGTH = 500;
  */
 export function sanitizeInput(raw: string): string {
   return raw
-    .replace(/<[^>]*>/g, '')                    // strip HTML tags
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // remove script blocks entirely
+    .replace(/<[^>]*>/g, '')                    // strip remaining HTML tags
     .replace(/[^\w\s.,?!'\-]/g, '')             // allow only safe characters
     .trim()
     .slice(0, MAX_LENGTH);

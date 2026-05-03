@@ -4,6 +4,8 @@ import React from 'react';
  * Renders the custom Markdown format used in topic contentMd.
  * Supports: # headings, - lists, 1. ordered lists, ![alt](src) images,
  * :::factsheet blocks, and plain paragraphs.
+ * Accessibility: aria-hidden on decorative icons, aria-describedby on links,
+ * role="tooltip" on factsheet, alt text on images.
  */
 export default function MarkdownRenderer({ content }) {
   if (!content) return null;
@@ -18,27 +20,35 @@ export default function MarkdownRenderer({ content }) {
     // ── Factsheet block ───────────────────────────────────────────────────────
     if (line.trim() === ':::factsheet') {
       const title = lines[++i]?.trim() ?? '';
-      const body = lines[++i]?.trim() ?? '';
+      const body  = lines[++i]?.trim() ?? '';
       const actionParts = (lines[++i]?.trim() ?? '').split('|');
       const actionLabel = actionParts[0] ?? '';
-      const actionUrl = actionParts[1] ?? '#';
+      const actionUrl   = actionParts[1] ?? '#';
       i += 2; // skip closing :::
+      const fsId = `fs-${i}`;
       nodes.push(
-        <div key={`fs-${i}`} className="border-l-4 border-primary-container bg-primary-fixed/30 rounded-r-lg p-5 my-4">
+        <div
+          key={fsId}
+          className="border-l-4 border-primary-container bg-primary-fixed/30 rounded-r-lg p-5 my-4"
+          role="note"
+          aria-label={`Factsheet: ${title}`}
+        >
           <div className="flex items-center gap-2 text-primary-container font-bold mb-2">
-            <span className="material-symbols-outlined text-[18px]">info</span>
-            <span className="text-[13px] uppercase tracking-widest">{title}</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">info</span>
+            <span className="text-[13px] uppercase tracking-widest" id={`${fsId}-title`}>{title}</span>
           </div>
-          <p className="text-[14px] text-on-surface mb-3">{body}</p>
+          <p className="text-[14px] text-on-surface mb-3" id={`${fsId}-body`}>{body}</p>
           {actionLabel && (
             <a
               href={actionUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[13px] font-semibold text-primary-container hover:underline"
+              aria-describedby={`${fsId}-title ${fsId}-body`}
+              aria-label={`${actionLabel} — opens official website in new tab`}
             >
               {actionLabel}
-              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_new</span>
             </a>
           )}
         </div>
@@ -83,8 +93,13 @@ export default function MarkdownRenderer({ content }) {
     const img = line.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
     if (img) {
       nodes.push(
-        <img key={`img-${i}`} src={img[2]} alt={img[1]}
-          className="w-full rounded-lg my-4 border border-[#DEE2E6]" loading="lazy" />
+        <img
+          key={`img-${i}`}
+          src={img[2]}
+          alt={img[1] || 'Election education illustration'}
+          className="w-full rounded-lg my-4 border border-[#DEE2E6]"
+          loading="lazy"
+        />
       );
       i++; continue;
     }
@@ -97,11 +112,16 @@ export default function MarkdownRenderer({ content }) {
         i++;
       }
       nodes.push(
-        <ul key={`ul-${i}`} className="space-y-2 my-3 ml-1">
+        <ul key={`ul-${i}`} className="space-y-2 my-3 ml-1" role="list">
           {items.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2 text-[15px] text-on-surface-variant leading-relaxed">
-              <span className="material-symbols-outlined text-secondary text-[16px] mt-0.5 flex-shrink-0"
-                style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              <span
+                className="material-symbols-outlined text-secondary text-[16px] mt-0.5 flex-shrink-0"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+                aria-hidden="true"
+              >
+                check_circle
+              </span>
               <span>{renderInline(item)}</span>
             </li>
           ))}
@@ -121,7 +141,10 @@ export default function MarkdownRenderer({ content }) {
         <ol key={`ol-${i}`} className="space-y-2 my-3 ml-1">
           {items.map((item, idx) => (
             <li key={idx} className="flex items-start gap-3 text-[15px] text-on-surface-variant leading-relaxed">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-container text-white text-[11px] font-bold flex items-center justify-center mt-0.5">
+              <span
+                className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-container text-white text-[11px] font-bold flex items-center justify-center mt-0.5"
+                aria-hidden="true"
+              >
                 {idx + 1}
               </span>
               <span>{renderInline(item)}</span>
@@ -151,7 +174,6 @@ export default function MarkdownRenderer({ content }) {
  * Renders inline Markdown: **bold**, *italic*, `code`
  */
 function renderInline(text) {
-  // Split on bold (**text**), italic (*text*), code (`text`)
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -161,7 +183,11 @@ function renderInline(text) {
       return <em key={i}>{part.slice(1, -1)}</em>;
     }
     if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="bg-surface-container px-1.5 py-0.5 rounded text-[13px] font-mono text-primary-container">{part.slice(1, -1)}</code>;
+      return (
+        <code key={i} className="bg-surface-container px-1.5 py-0.5 rounded text-[13px] font-mono text-primary-container">
+          {part.slice(1, -1)}
+        </code>
+      );
     }
     return part;
   });

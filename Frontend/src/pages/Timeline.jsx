@@ -144,38 +144,77 @@ export default function Timeline() {
           </div>
         </div>
 
-        {/* Interactive timeline visualizer */}
-        <div className="relative mb-16 overflow-x-auto pb-12" style={{ scrollbarWidth: 'none' }}>
+        {/* Interactive timeline visualizer — keyboard navigable */}
+        <div
+          className="relative mb-16 overflow-x-auto pb-12"
+          style={{ scrollbarWidth: 'none' }}
+          role="region"
+          aria-label="Interactive election timeline. Use left and right arrow keys to scroll."
+          tabIndex={0}
+          onKeyDown={(e) => {
+            const el = e.currentTarget;
+            if (e.key === 'ArrowRight') { e.preventDefault(); el.scrollLeft += 160; }
+            if (e.key === 'ArrowLeft')  { e.preventDefault(); el.scrollLeft -= 160; }
+            if (e.key === 'Home')       { e.preventDefault(); el.scrollLeft = 0; }
+            if (e.key === 'End')        { e.preventDefault(); el.scrollLeft = el.scrollWidth; }
+          }}
+        >
+          <p className="sr-only">
+            Use left and right arrow keys to navigate the timeline. Press Home to go to the start, End to go to the end.
+          </p>
           <div className="min-w-[900px] py-20 relative">
             {/* Base dashed line */}
             <div
               className="absolute top-[50%] left-0 w-full h-[2px] translate-y-[-50%]"
               style={{ backgroundImage: 'linear-gradient(to right, #DEE2E6 50%, transparent 50%)', backgroundSize: '10px 1px', backgroundRepeat: 'repeat-x' }}
+              aria-hidden="true"
             ></div>
             {/* TODAY marker */}
-            <div className="absolute left-[30%] top-0 bottom-0 w-[2px] bg-primary z-10 flex flex-col items-center">
+            <div
+              className="absolute left-[30%] top-0 bottom-0 w-[2px] bg-primary z-10 flex flex-col items-center"
+              aria-hidden="true"
+            >
               <div className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">TODAY</div>
             </div>
-            {/* Nodes */}
-            <div className="flex justify-between relative px-10">
+            {/* Nodes — each is a focusable button */}
+            <div className="flex justify-between relative px-10" role="list">
               {TIMELINE_NODES.map(({ date, title, type, color, tooltip, urgent }) => (
-                <div key={title} className="relative flex flex-col items-center w-36 group cursor-pointer">
+                <div
+                  key={title}
+                  className="relative flex flex-col items-center w-36 group"
+                  role="listitem"
+                >
                   <div className="mb-4 text-center">
-                    <span className={`block text-xs font-bold uppercase ${urgent ? 'text-error' : 'text-on-surface-variant'}`}>{date}</span>
+                    <span className={`block text-xs font-bold uppercase ${urgent ? 'text-error' : 'text-on-surface-variant'}`}>
+                      {urgent && <span className="sr-only">Urgent deadline: </span>}
+                      {date}
+                    </span>
                     <h4 className="text-sm font-bold text-on-surface">{title}</h4>
                   </div>
-                  {type === 'circle' && (
-                    <div className={`w-6 h-6 rounded-full border-4 border-white ${color} shadow-md z-20 transition-transform group-hover:scale-125 ${urgent ? 'ring-4 ring-error/20' : ''}`}></div>
-                  )}
-                  {type === 'pill' && (
-                    <div className={`w-14 h-4 rounded-full ${color} shadow-sm z-20 transition-all group-hover:w-16`}></div>
-                  )}
-                  {type === 'square' && (
-                    <div className={`w-10 h-10 rounded-xl border-4 border-white ${color} shadow-md z-20 flex items-center justify-center transition-transform group-hover:rotate-12`}>
-                      <span className="material-symbols-outlined text-white text-[20px]">how_to_vote</span>
-                    </div>
-                  )}
-                  <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity absolute top-24 w-56 p-4 bg-white border border-outline-variant shadow-lg rounded-xl z-30 pointer-events-none">
+                  {/* Focusable node button */}
+                  <button
+                    className={`focus-visible:outline-2 focus-visible:outline-[#004492] focus-visible:outline-offset-4 rounded-full ${urgent ? 'ring-4 ring-error/20' : ''}`}
+                    aria-label={`${title} — ${date}. ${tooltip}`}
+                    aria-describedby={`tooltip-${title.replace(/\s+/g, '-')}`}
+                  >
+                    {type === 'circle' && (
+                      <div className={`w-6 h-6 rounded-full border-4 border-white ${color} shadow-md z-20 transition-transform group-hover:scale-125`}></div>
+                    )}
+                    {type === 'pill' && (
+                      <div className={`w-14 h-4 rounded-full ${color} shadow-sm z-20 transition-all group-hover:w-16`}></div>
+                    )}
+                    {type === 'square' && (
+                      <div className={`w-10 h-10 rounded-xl border-4 border-white ${color} shadow-md z-20 flex items-center justify-center transition-transform group-hover:rotate-12`}>
+                        <span className="material-symbols-outlined text-white text-[20px]" aria-hidden="true">how_to_vote</span>
+                      </div>
+                    )}
+                  </button>
+                  {/* Tooltip — visible on hover/focus */}
+                  <div
+                    id={`tooltip-${title.replace(/\s+/g, '-')}`}
+                    role="tooltip"
+                    className="mt-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity absolute top-24 w-56 p-4 bg-white border border-outline-variant shadow-lg rounded-xl z-30 pointer-events-none"
+                  >
                     <p className="text-xs text-on-surface-variant">{tooltip}</p>
                   </div>
                 </div>

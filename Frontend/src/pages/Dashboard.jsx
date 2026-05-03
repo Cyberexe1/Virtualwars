@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
+import { useProgress } from '../hooks/useProgress';
 
 const CATEGORY_META = {
   registration:        { icon: 'how_to_reg',      badge: 'bg-primary-fixed text-on-primary-fixed' },
@@ -48,53 +49,41 @@ export default function Dashboard() {
   const displayName = user?.displayName || 'Guest';
 
   const [topics, setTopics] = useState([]);
-  const [userStats, setUserStats] = useState({ topicsViewed: 0, questionsAsked: 0, badgesEarned: [], progress: {} });
-  const [loading, setLoading] = useState(true);
+  const [topicsLoading, setTopicsLoading] = useState(true);
+
+  // Real progress from localStorage + Firestore
+  const { progress, topicsViewed, questionsAsked, loading: progressLoading } = useProgress(user?.uid);
+  const loading = topicsLoading || progressLoading;
 
   useEffect(() => {
-    async function loadData() {
+    async function loadTopics() {
       try {
-        // Load all topics from Firestore
         const topicsSnap = await getDocs(collection(db, 'topics'));
         const topicsData = topicsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         setTopics(topicsData);
-
-        // Load user stats if logged in (non-anonymous)
-        if (user && !user.isAnonymous) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setUserStats({
-              topicsViewed: data.topicsViewed ?? 0,
-              questionsAsked: data.questionsAsked ?? 0,
-              badgesEarned: data.badgesEarned ?? [],
-              progress: data.progress ?? {},
-            });
-          }
-        }
       } catch (err) {
-        console.error('[Dashboard] Failed to load data:', err);
+        console.error('[Dashboard] Failed to load topics:', err);
       } finally {
-        setLoading(false);
+        setTopicsLoading(false);
       }
     }
-    loadData();
-  }, [user]);
+    loadTopics();
+  }, []);
 
   // Calculate progress metrics from real data
   const totalTopics = topics.length || 10;
-  const completedTopics = Object.values(userStats.progress).filter(p => p?.completed).length;
+  const completedTopics = Object.values(progress).filter(p => p?.completed).length;
   const progressPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 
   // Topics not yet completed — show first 2 as "Continue Learning"
   const inProgressTopics = topics.filter(t => {
-    const p = userStats.progress[t.id];
+    const p = progress[t.id];
     return !p?.completed;
   }).slice(0, 2);
 
   // Recently completed topics for activity feed
   const recentlyCompleted = topics
-    .filter(t => userStats.progress[t.id]?.completed)
+    .filter(t => progress[t.id]?.completed)
     .slice(0, 3);
 
   // Badges logic
@@ -164,7 +153,7 @@ export default function Dashboard() {
                   {/* Progress bar per topic */}
                   <div className="space-y-2">
                     {topics.slice(0, 4).map(t => {
-                      const done = userStats.progress[t.id]?.completed;
+                      const done = progress[t.id]?.completed;
                       return (
                         <div key={t.id} className="flex items-center gap-2">
                           <span className={`material-symbols-outlined text-[16px] ${done ? 'text-secondary' : 'text-outline'}`}
@@ -195,7 +184,7 @@ export default function Dashboard() {
               <span className="font-['Public_Sans'] text-[11px] font-bold uppercase tracking-widest text-on-primary-container">Topics Viewed</span>
               <div className="flex items-end justify-between">
                 <span className="font-['Public_Sans'] text-[40px] font-bold">
-                  {loading ? '—' : userStats.topicsViewed || completedTopics}
+                  {loading ? '—' : topicsViewed || completedTopics}
                 </span>
                 <span className="material-symbols-outlined text-4xl opacity-50">menu_book</span>
               </div>
@@ -204,7 +193,7 @@ export default function Dashboard() {
               <span className="font-['Public_Sans'] text-[11px] font-bold uppercase tracking-widest text-secondary-container">Questions Asked</span>
               <div className="flex items-end justify-between">
                 <span className="font-['Public_Sans'] text-[40px] font-bold">
-                  {loading ? '—' : String(userStats.questionsAsked).padStart(2, '0')}
+                  {loading ? '—' : String(questionsAsked).padStart(2, '0')}
                 </span>
                 <span className="material-symbols-outlined text-4xl opacity-50">chat_bubble_outline</span>
               </div>
@@ -312,7 +301,8 @@ export default function Dashboard() {
                     <div>
                       <p className="text-sm font-semibold">Completed: {t.title}</p>
                       <p className="text-xs text-outline mt-0.5">
-                        {userStats.progress[t.id]?.completedAt?.toDate?.()?.toLocaleDateString('en-IN') ?? 'Recently'}
+                        {progress[t.id]?.completedAt?.toDate?.()?.toLocaleDateString('en-IN') ??
+                         (progress[t.id]?.completedAt ? new Date(progress[t.id].completedAt).toLocaleDateString('en-IN') : 'Recently')}
                       </p>
                     </div>
                   </div>
@@ -328,13 +318,13 @@ export default function Dashboard() {
               )}
 
               {/* Always show: questions asked */}
-              {!loading && userStats.questionsAsked > 0 && (
+              {!loading && questionsAsked > 0 && (
                 <div className="flex gap-4 border-t border-[#DEE2E6] pt-4">
                   <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
                     <span className="material-symbols-outlined text-on-primary-fixed-variant">chat</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">Asked {userStats.questionsAsked} question{userStats.questionsAsked !== 1 ? 's' : ''} to AI</p>
+                    <p className="text-sm font-semibold">Asked {questionsAsked} question{questionsAsked !== 1 ? 's' : ''} to AI</p>
                     <Link to="/chat" className="text-xs text-primary-container font-semibold hover:underline">Continue chatting →</Link>
                   </div>
                 </div>

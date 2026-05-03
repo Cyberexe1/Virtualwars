@@ -7,11 +7,19 @@ const router = Router();
 /**
  * GET /api/timeline/:cycleId
  * Returns a TimelineDocument by cycle ID (e.g. "india-2024").
- * Public — no auth required.
+ * Public — no auth required (timeline data is public election information).
  */
 router.get('/:cycleId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { cycleId } = req.params;
+
+    // Validate cycleId format to prevent path traversal
+    if (!/^[a-z0-9-]+$/.test(cycleId)) {
+      const error: ApiError = { error: 'Invalid cycle ID format', code: 'timeline/invalid-id' };
+      res.status(400).json(error);
+      return;
+    }
+
     const doc = await adminDb.collection('timelines').doc(cycleId).get();
 
     if (!doc.exists) {
@@ -31,24 +39,7 @@ router.get('/:cycleId', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-/**
- * GET /api/timeline
- * Returns all available timeline cycles (index).
- */
-router.get('/', async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const snapshot = await adminDb.collection('timelines').get();
-    const timelines = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      year: (doc.data() as TimelineDocument).year,
-      label: (doc.data() as TimelineDocument).label,
-    }));
-    res.json(timelines);
-  } catch (err) {
-    console.error('[Timeline] GET /api/timeline error:', err);
-    const error: ApiError = { error: 'Failed to fetch timelines', code: 'timeline/fetch-error' };
-    res.status(500).json(error);
-  }
-});
+// NOTE: GET /api/timeline (index listing) removed — unused by frontend.
+// Frontend reads directly from Firestore client-side or uses /api/timeline/india-2024.
 
 export default router;

@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }) {
       <NavBar />
       <div className="flex-grow max-w-[1400px] mx-auto w-full px-2 md:px-4 py-10 flex flex-col md:flex-row gap-6">
         <DashboardSidebar />
-        <main className="flex-grow min-w-0">
+        <main className="flex-grow min-w-0" id="main-content" tabIndex={-1}>
           {children}
         </main>
       </div>

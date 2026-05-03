@@ -120,16 +120,23 @@ export default function NavBar() {
           <button
             className="md:hidden p-2 rounded-lg hover:bg-surface-container"
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
           >
-            <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
+            <span className="material-symbols-outlined" aria-hidden="true">{menuOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
       </nav>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-[#DEE2E6] px-4 py-4 space-y-2">
+        <div
+          id="mobile-menu"
+          className="md:hidden bg-white border-t border-[#DEE2E6] px-4 py-4 space-y-2"
+          role="navigation"
+          aria-label="Mobile navigation"
+        >
           <Link to="/topics" className="block py-2 text-gray-700 font-medium" onClick={() => setMenuOpen(false)}>Topics</Link>
           <Link to="/timeline" className="block py-2 text-gray-700 font-medium" onClick={() => setMenuOpen(false)}>Timeline</Link>
           <Link to="/chat" className="block py-2 text-gray-700 font-medium" onClick={() => setMenuOpen(false)}>Ask AI</Link>

@@ -44,6 +44,14 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.get('/:topicId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { topicId } = req.params;
+
+    // Validate topicId format to prevent path traversal / injection
+    if (!/^[a-z0-9-]+$/.test(topicId)) {
+      const error: ApiError = { error: 'Invalid topic ID format', code: 'topics/invalid-id' };
+      res.status(400).json(error);
+      return;
+    }
+
     const doc = await adminDb.collection('topics').doc(topicId).get();
 
     if (!doc.exists) {
