@@ -11,6 +11,7 @@ import timelineRouter from './routes/timeline';
 import progressRouter from './routes/progress';
 import chatRouter from './routes/chat';
 import alertsRouter from './routes/alerts';
+import translateRouter from './routes/translate';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '5000', 10);
@@ -58,6 +59,7 @@ app.use('/api/timeline', timelineRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/alerts', alertsRouter);
+app.use('/api/translate', translateRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

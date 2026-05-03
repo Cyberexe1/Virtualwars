@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import { useTopics } from '../hooks/useTopics';
@@ -18,18 +18,17 @@ const CATEGORY_META = {
 
 const STATUS_FILTERS = ['All', 'Completed', 'In Progress', 'Not Started'];
 
-// Mock progress — in a real app this comes from useProgress hook
-const MOCK_PROGRESS = {
-  'voter-registration': 100,
-  'eci-structure': 100,
-  'results-certification': 100,
-  'ballot-types': 45,
-  'election-security': 20,
-};
+// Read progress from localStorage (set by TopicDetail when user reads/completes)
+function getLocalProgress() {
+  try { return JSON.parse(localStorage.getItem('civic_progress') ?? '{}'); } catch { return {}; }
+}
 
-function getStatus(progress) {
-  if (progress === 100) return 'completed';
-  if (progress > 0) return 'in-progress';
+function getStatus(topicId) {
+  const prog = getLocalProgress();
+  const p = prog[topicId];
+  if (!p) return 'not-started';
+  if (p.completed) return 'completed';
+  if (p.lastPage !== undefined && p.lastPage > 0) return 'in-progress';
   return 'not-started';
 }
 
@@ -42,16 +41,27 @@ const statusLabel = {
 export default function Topics() {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [, forceUpdate] = useState(0);
   const { topics: firestoreTopics, loading } = useTopics();
+
+  // Re-read localStorage when page becomes visible (user returns from TopicDetail)
+  useEffect(() => {
+    const onFocus = () => forceUpdate(n => n + 1);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   // Enrich Firestore topics with progress + meta
   const ALL_TOPICS = firestoreTopics.map((t) => {
-    const progress = MOCK_PROGRESS[t.id] ?? 0;
+    const localProg = getLocalProgress();
+    const p = localProg[t.id];
+    const progress = p?.completed ? 100 : p?.lastPage ? Math.round((p.lastPage / 5) * 80) : 0;
+    const status = getStatus(t.id);
     const meta = CATEGORY_META[t.category] ?? { color: 'bg-surface-container text-on-surface-variant', icon: 'article', iconColor: 'text-outline' };
     return {
       ...t,
       progress,
-      status: getStatus(progress),
+      status,
       categoryLabel: (t.category ?? '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       ...meta,
     };
