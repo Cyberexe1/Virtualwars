@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   signInAnonymously,
   signOut as firebaseSignOut,
@@ -12,6 +14,7 @@ import {
 import { auth, googleProvider } from '../firebase';
 
 // Demo credentials (still available as a fallback for offline/demo mode)
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEMO_CREDENTIALS = {
   email: 'demo@civicclarity.in',
   password: 'India@2024',
@@ -63,19 +66,39 @@ export function AuthProvider({ children }) {
     return unsubscribe; // cleanup on unmount
   }, []);
 
+  // Handle redirect result on page load (for signInWithRedirect flow)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) setError('');
+      })
+      .catch((err) => {
+        if (err.code && err.code !== 'auth/no-current-user') {
+          setError(getErrorMessage(err.code));
+        }
+      });
+  }, []);
+
   // ── Google OAuth ────────────────────────────────────────────────────────────
   const signInWithGoogle = async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // If user was anonymous, link the Google credential to preserve data
-      if (auth.currentUser?.isAnonymous) {
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        if (credential) await linkWithCredential(auth.currentUser, credential);
+      const isLocalhost = window.location.hostname === 'localhost';
+      if (isLocalhost) {
+        // Popup works fine on localhost
+        const result = await signInWithPopup(auth, googleProvider);
+        if (auth.currentUser?.isAnonymous) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential) await linkWithCredential(auth.currentUser, credential);
+        }
+        setLoading(false);
+        return true;
+      } else {
+        // Use redirect on production — more reliable, avoids popup-blocked issues
+        await signInWithRedirect(auth, googleProvider);
+        return true; // page will redirect, loading stays true
       }
-      setLoading(false);
-      return true;
     } catch (err) {
       setError(getErrorMessage(err.code));
       setLoading(false);
@@ -145,23 +168,15 @@ export function AuthProvider({ children }) {
     return auth.currentUser.getIdToken();
   };
 
-  if (initialising) {
-    // Prevent flash of unauthenticated content while Firebase resolves auth state
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <span className="material-symbols-outlined text-primary text-4xl animate-spin">progress_activity</span>
-          <p className="text-on-surface-variant font-['Lexend']">Loading Civic Clarity...</p>
-        </div>
-      </div>
-    );
-  }
+  // Don't block rendering — let RedirectHandler manage navigation
+  // The initialising state is exposed via context for components that need it
 
   return (
     <AuthContext.Provider value={{
       user,
       error,
       loading,
+      initialising,
       signIn,
       signInWithGoogle,
       signInAsGuest,
@@ -175,6 +190,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

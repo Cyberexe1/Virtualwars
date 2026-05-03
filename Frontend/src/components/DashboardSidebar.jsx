@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,11 +14,14 @@ const DID_YOU_KNOW_FACTS = [
   'India\'s 2024 Lok Sabha elections were conducted in 7 phases across 44 days, the longest in history.',
 ];
 
+// Compute once at module level — stable across renders, changes daily
+const DAILY_FACT = DID_YOU_KNOW_FACTS[Math.floor(Date.now() / 86400000) % DID_YOU_KNOW_FACTS.length];
+
 export default function DashboardSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const displayName = user?.displayName || 'Guest';
-  const fact = DID_YOU_KNOW_FACTS[Math.floor(Date.now() / 86400000) % DID_YOU_KNOW_FACTS.length];
+  const fact = DAILY_FACT;
 
   return (
     <aside className="w-full md:w-64 flex-shrink-0">

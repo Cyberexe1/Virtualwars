@@ -1,44 +1,33 @@
-# Stage 1: Build React frontend
-FROM node:20-alpine AS frontend-builder
-WORKDIR /app/frontend
+# ─────────────────────────────────────────────────────────────────────────────
+# This Dockerfile uses a pre-built frontend dist folder.
+# Run: cd Frontend && npm run build   BEFORE deploying.
+# The Frontend/dist folder is copied directly into the image.
+# ─────────────────────────────────────────────────────────────────────────────
 
-COPY Frontend/package*.json ./
-RUN npm ci
-
-COPY Frontend/ ./
-
-# Hardcode Firebase config for production build
-ENV VITE_FIREBASE_API_KEY=AIzaSyAeLkXjD7asvDOkyHPSWlFEEwuoX96X-a8
-ENV VITE_FIREBASE_AUTH_DOMAIN=virtualpromptwars-eb2fd.firebaseapp.com
-ENV VITE_FIREBASE_PROJECT_ID=virtualpromptwars-eb2fd
-ENV VITE_FIREBASE_STORAGE_BUCKET=virtualpromptwars-eb2fd.firebasestorage.app
-ENV VITE_FIREBASE_MESSAGING_SENDER_ID=956621523535
-ENV VITE_FIREBASE_APP_ID=1:956621523535:web:57aac2b2904a116d13f83a
-ENV VITE_FIREBASE_MEASUREMENT_ID=G-GXPV32BCCE
-ENV VITE_API_URL=/api
-
-RUN npm run build
-
-# Stage 2: Build Node.js backend
+# Stage 1: Build Node.js backend
 FROM node:20-alpine AS backend-builder
 WORKDIR /app/backend
 
-COPY Backend/package*.json ./
-RUN npm ci
+COPY Backend/package.json Backend/package-lock.json ./
+RUN npm ci --ignore-scripts
 
 COPY Backend/tsconfig.json ./
 COPY Backend/src ./src
 RUN npm run build
 
-# Stage 3: Production image
+# Stage 2: Production runner
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-COPY Backend/package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+# Install only production backend dependencies
+COPY Backend/package.json Backend/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
+# Copy compiled backend
 COPY --from=backend-builder /app/backend/dist ./dist
-COPY --from=frontend-builder /app/frontend/dist ./public
+
+# Copy pre-built React frontend (built locally before docker deploy)
+COPY Frontend/dist ./public
 
 ENV NODE_ENV=production
 ENV PORT=8080

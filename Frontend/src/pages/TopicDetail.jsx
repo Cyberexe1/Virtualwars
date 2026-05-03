@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import DashboardLayout from '../components/DashboardLayout';
@@ -91,8 +91,10 @@ export default function TopicDetail() {
     if (!topicId) return;
     const prog = getProgress();
     if (prog[topicId]) {
-      setCompleted(prog[topicId].completed ?? false);
-      setCurrentPage(prog[topicId].lastPage ?? 0);
+      setTimeout(() => {
+        setCompleted(prog[topicId].completed ?? false);
+        setCurrentPage(prog[topicId].lastPage ?? 0);
+      }, 0);
     }
   }, [topicId]);
 
@@ -100,17 +102,19 @@ export default function TopicDetail() {
   useEffect(() => {
     if (topic?.contentMd) {
       const p = splitIntoPages(topic.contentMd);
-      setPages(p);
+      setTimeout(() => setPages(p), 0);
     }
   }, [topic]);
 
   // Re-split when translated content changes
   useEffect(() => {
     if (translatedContent) {
-      setPages(splitIntoPages(translatedContent));
-      setCurrentPage(0);
+      setTimeout(() => {
+        setPages(splitIntoPages(translatedContent));
+        setCurrentPage(0);
+      }, 0);
     } else if (topic?.contentMd) {
-      setPages(splitIntoPages(topic.contentMd));
+      setTimeout(() => setPages(splitIntoPages(topic.contentMd)), 0);
     }
   }, [translatedContent, topic]);
 

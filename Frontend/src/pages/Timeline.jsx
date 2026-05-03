@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import AlertModal from '../components/AlertModal';
 

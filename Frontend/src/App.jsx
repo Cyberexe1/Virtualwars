@@ -1,5 +1,5 @@
-import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // ── Code splitting: each page loads only when navigated to ──────────────────
@@ -31,9 +31,29 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/signup" replace />;
 }
 
+// ── Auto-redirect after Google sign-in redirect flow ─────────────────────────
+function RedirectHandler() {
+  const { user, initialising } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (initialising) return; // wait for Firebase to resolve auth state
+    if (user) {
+      const path = window.location.pathname;
+      // Redirect to dashboard from any public page after login
+      if (path === '/signup' || path === '/' || path === '/login') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, initialising, navigate]);
+
+  return null;
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <RedirectHandler />
       <Routes>
         <Route path="/"                element={<Landing />} />
         <Route path="/signup"          element={<Signup />} />

@@ -1,30 +1,38 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import { useAuth, DEMO_CREDENTIALS } from '../context/AuthContext';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signIn, signInWithGoogle, signInAsGuest, error, loading, setError } = useAuth();
+  const { user, signIn, signInWithGoogle, signInAsGuest, error, loading, setError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Auto-redirect when user is authenticated (handles both popup and redirect flows)
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const ok = await signIn(email, password);
-    if (ok) navigate('/dashboard');
+    await signIn(email, password);
+    // navigation handled by useEffect above
   };
 
   const handleGuest = async () => {
-    const ok = await signInAsGuest();
-    if (ok) navigate('/dashboard');
+    await signInAsGuest();
+    // navigation handled by useEffect above
   };
 
   const handleGoogle = async () => {
-    const ok = await signInWithGoogle();
-    if (ok) navigate('/dashboard');
+    await signInWithGoogle();
+    // For popup: navigation handled by useEffect above
+    // For redirect: page redirects to Google, then back — useEffect handles it
   };
 
   const fillDemo = () => {
@@ -145,8 +153,10 @@ export default function Signup() {
                   </label>
                   <input
                     id="email"
+                    name="email"
                     type="email"
                     required
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
@@ -164,8 +174,10 @@ export default function Signup() {
                   <div className="relative">
                     <input
                       id="password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"

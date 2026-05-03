@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 
@@ -70,29 +70,7 @@ export default function Chat() {
   const topRef = useRef(null);
   const hasAutoSent = useRef(false);
 
-  // Scroll to top on first load so welcome message is visible
-  useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: 'instant' });
-  }, []);
-
-  // Auto-send a question when arriving from a topic page
-  useEffect(() => {
-    if (topicContext?.topicTitle && !hasAutoSent.current) {
-      hasAutoSent.current = true;
-      const autoQuestion = `Can you explain "${topicContext.topicTitle}" in simple terms?`;
-      // Small delay so the welcome message renders first
-      setTimeout(() => sendMessage(autoQuestion), 600);
-    }
-  }, [topicContext]);
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messages.length > 1 || typing) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, typing]);
-
-  const sendMessage = (text) => {
+  const sendMessage = useCallback((text) => {
     const msg = (text || input).trim();
     if (!msg) return;
     setInput('');
@@ -118,7 +96,29 @@ export default function Chat() {
         },
       ]);
     }, 1500);
-  };
+  }, [input]);
+
+  // Scroll to top on first load so welcome message is visible
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'instant' });
+  }, []);
+
+  // Auto-send a question when arriving from a topic page
+  useEffect(() => {
+    if (topicContext?.topicTitle && !hasAutoSent.current) {
+      hasAutoSent.current = true;
+      const autoQuestion = `Can you explain "${topicContext.topicTitle}" in simple terms?`;
+      // Small delay so the welcome message renders first
+      setTimeout(() => sendMessage(autoQuestion), 600);
+    }
+  }, [topicContext, sendMessage]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 1 || typing) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, typing]);
 
   return (
     <DashboardLayout>
@@ -269,6 +269,8 @@ export default function Chat() {
           {/* Text input */}
           <div className="flex items-end gap-2 bg-surface-container-low border border-[#DEE2E6] rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#004492] focus-within:border-transparent transition-all">
             <textarea
+              id="chat-input"
+              name="message"
               className="flex-grow bg-transparent border-none focus:ring-0 resize-none py-2 text-[14px] text-on-surface placeholder-outline max-h-28 leading-relaxed"
               placeholder="Ask about voting in India..."
               rows={1}

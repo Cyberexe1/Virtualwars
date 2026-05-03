@@ -1,5 +1,5 @@
 **/node_modules
-**/dist
+Backend/dist
 **/.env
 **/serviceAccountKey.json
 **/*.key.json
@@ -8,3 +8,4 @@
 .kiro
 stitch_*
 README.md
+deploy.ps1

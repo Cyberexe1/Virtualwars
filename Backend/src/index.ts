@@ -22,10 +22,48 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", 'https://*.googleapis.com', 'https://*.firebaseio.com'],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        'https://apis.google.com',
+        'https://*.googleapis.com',
+        'https://*.gstatic.com',
+        'https://*.firebaseapp.com',
+      ],
+      scriptSrcElem: [
+        "'self'",
+        "'unsafe-inline'",
+        'https://apis.google.com',
+        'https://*.googleapis.com',
+        'https://*.gstatic.com',
+        'https://*.firebaseapp.com',
+      ],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+      frameSrc: [
+        'https://accounts.google.com',
+        'https://*.firebaseapp.com',
+        'https://virtualpromptwars-eb2fd.firebaseapp.com',
+        'https://*.google.com',
+        'https://civic-clarity-956621523535.us-central1.run.app',
+      ],
+      connectSrc: [
+        "'self'",
+        'https://*.googleapis.com',
+        'https://*.firebaseio.com',
+        'https://*.firebase.com',
+        'https://identitytoolkit.googleapis.com',
+        'https://securetoken.googleapis.com',
+        'https://accounts.google.com',
+        'wss://*.firebaseio.com',
+      ],
+      workerSrc: ["'self'", 'blob:'],
     },
   },
-  // Prevent server fingerprinting
+  // Don't set X-Frame-Options via meta — only via HTTP header
+  frameguard: { action: 'sameorigin' },
   hidePoweredBy: true,
 }));
 
@@ -36,14 +74,10 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173')
 
 app.use(cors({
   origin: (origin, callback) => {
-    // In production: reject requests with no origin (direct curl/Postman access)
-    // In development: allow no-origin for local testing convenience
+    // Same-origin requests (frontend served by same Express server) have no origin header
+    // Allow these in all environments
     if (!origin) {
-      if (IS_PROD) {
-        callback(new Error('CORS: direct requests not allowed in production'));
-      } else {
-        callback(null, true);
-      }
+      callback(null, true);
       return;
     }
     if (allowedOrigins.includes(origin)) {

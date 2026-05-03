@@ -1,0 +1,26 @@
+# This file controls what gets uploaded to Cloud Build
+# It overrides .gitignore for gcloud deployments
+
+.git
+.kiro
+.vscode
+stitch_*
+
+# Exclude node_modules (large, rebuilt in Docker)
+**/node_modules
+
+# Exclude backend dist (rebuilt in Docker)
+Backend/dist
+
+# Exclude secrets
+**/.env
+**/serviceAccountKey.json
+**/*.key.json
+
+# Exclude dev files
+**/coverage
+deploy.ps1
+README.md
+
+# NOTE: Frontend/dist is intentionally NOT excluded
+# The Dockerfile copies it directly into the container

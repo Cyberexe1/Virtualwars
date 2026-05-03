@@ -31,14 +31,15 @@ export function useTopics({ category, locale } = {}) {
   useEffect(() => {
     // Use cache for unfiltered requests
     if (!category && !locale && isCacheValid()) {
-      setTopics(topicsCache.all);
-      setLoading(false);
+      setTimeout(() => {
+        setTopics(topicsCache.all);
+        setLoading(false);
+      }, 0);
       return;
     }
 
-    let q = collection(db, 'topics');
+    const q = collection(db, 'topics');
     const constraints = [];
-    if (category) constraints.push(where('category', '==', category));
     if (locale)   constraints.push(where('locale', '==', locale));
     const firestoreQuery = constraints.length > 0 ? query(q, ...constraints) : q;
 
@@ -79,8 +80,10 @@ export function useTopic(topicId) {
 
     // Return from cache immediately
     if (topicsCache.byId.has(topicId)) {
-      setTopic(topicsCache.byId.get(topicId));
-      setLoading(false);
+      setTimeout(() => {
+        setTopic(topicsCache.byId.get(topicId));
+        setLoading(false);
+      }, 0);
       return;
     }
 

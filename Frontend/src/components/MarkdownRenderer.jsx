@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Renders the custom Markdown format used in topic contentMd.

@@ -1,7 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../hooks/useProgress';
@@ -20,7 +18,7 @@ const CATEGORY_META = {
   'civic-rights':      { icon: 'gavel',            badge: 'bg-tertiary-fixed text-on-tertiary-fixed' },
 };
 
-const ProgressRing = React.memo(function ProgressRing({ percent }) {
+const ProgressRing = memo(function ProgressRing({ percent }) {
   const r = 58;
   const circumference = 2 * Math.PI * r; // 364.4 — constant, no need to recalculate
   const offset = circumference - (percent / 100) * circumference;
