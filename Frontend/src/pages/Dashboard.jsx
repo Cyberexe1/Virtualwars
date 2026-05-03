@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import { useProgress } from '../hooks/useProgress';
+import { useTopics } from '../hooks/useTopics';
 
 const CATEGORY_META = {
   registration:        { icon: 'how_to_reg',      badge: 'bg-primary-fixed text-on-primary-fixed' },
@@ -19,13 +20,13 @@ const CATEGORY_META = {
   'civic-rights':      { icon: 'gavel',            badge: 'bg-tertiary-fixed text-on-tertiary-fixed' },
 };
 
-function ProgressRing({ percent }) {
+const ProgressRing = React.memo(function ProgressRing({ percent }) {
   const r = 58;
-  const circumference = 2 * Math.PI * r;
+  const circumference = 2 * Math.PI * r; // 364.4 — constant, no need to recalculate
   const offset = circumference - (percent / 100) * circumference;
   return (
     <div className="relative w-32 h-32 flex items-center justify-center flex-shrink-0">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128" aria-label={`Learning progress: ${percent}% complete`} role="img">
         <circle className="text-surface-container" cx="64" cy="64" fill="transparent" r={r} stroke="currentColor" strokeWidth="8" />
         <circle
           className="text-secondary transition-all duration-700"
@@ -36,63 +37,54 @@ function ProgressRing({ percent }) {
           strokeLinecap="round"
         />
       </svg>
-      <div className="absolute flex flex-col items-center">
+      <div className="absolute flex flex-col items-center" aria-hidden="true">
         <span className="font-['Public_Sans'] text-[24px] font-bold text-on-surface">{percent}%</span>
         <span className="text-[10px] uppercase font-bold text-outline">Complete</span>
       </div>
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const { user } = useAuth();
   const displayName = user?.displayName || 'Guest';
 
-  const [topics, setTopics] = useState([]);
-  const [topicsLoading, setTopicsLoading] = useState(true);
+  // Use cached topics hook — no duplicate Firestore reads
+  const { topics, loading: topicsLoading } = useTopics();
 
   // Real progress from localStorage + Firestore
   const { progress, topicsViewed, questionsAsked, loading: progressLoading } = useProgress(user?.uid);
   const loading = topicsLoading || progressLoading;
 
-  useEffect(() => {
-    async function loadTopics() {
-      try {
-        const topicsSnap = await getDocs(collection(db, 'topics'));
-        const topicsData = topicsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setTopics(topicsData);
-      } catch (err) {
-        console.error('[Dashboard] Failed to load topics:', err);
-      } finally {
-        setTopicsLoading(false);
-      }
-    }
-    loadTopics();
-  }, []);
+  // ── Memoised derived values — only recalculate when inputs change ──────────
+  const totalTopics = useMemo(() => topics.length || 10, [topics]);
 
-  // Calculate progress metrics from real data
-  const totalTopics = topics.length || 10;
-  const completedTopics = Object.values(progress).filter(p => p?.completed).length;
-  const progressPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+  const completedTopics = useMemo(
+    () => Object.values(progress).filter(p => p?.completed).length,
+    [progress]
+  );
 
-  // Topics not yet completed — show first 2 as "Continue Learning"
-  const inProgressTopics = topics.filter(t => {
-    const p = progress[t.id];
-    return !p?.completed;
-  }).slice(0, 2);
+  const progressPercent = useMemo(
+    () => totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0,
+    [completedTopics, totalTopics]
+  );
 
-  // Recently completed topics for activity feed
-  const recentlyCompleted = topics
-    .filter(t => progress[t.id]?.completed)
-    .slice(0, 3);
+  const inProgressTopics = useMemo(
+    () => topics.filter(t => !progress[t.id]?.completed).slice(0, 2),
+    [topics, progress]
+  );
 
-  // Badges logic
-  const earnedBadges = [
-    { icon: 'school', title: 'First Lesson', earned: completedTopics >= 1 },
-    { icon: 'grade', title: 'Perfect Score', earned: completedTopics >= 3 },
-    { icon: 'how_to_reg', title: 'Civic Duty', earned: completedTopics >= 5 },
-    { icon: 'emoji_events', title: 'Expert Voter', earned: completedTopics >= 10 },
-  ];
+  const recentlyCompleted = useMemo(
+    () => topics.filter(t => progress[t.id]?.completed).slice(0, 3),
+    [topics, progress]
+  );
+
+  const earnedBadges = useMemo(() => [
+    { icon: 'school',       title: 'First Lesson',  earned: completedTopics >= 1 },
+    { icon: 'grade',        title: 'Perfect Score',  earned: completedTopics >= 3 },
+    { icon: 'how_to_reg',   title: 'Civic Duty',     earned: completedTopics >= 5 },
+    { icon: 'emoji_events', title: 'Expert Voter',   earned: completedTopics >= 10 },
+  ], [completedTopics]);
 
   return (
     <DashboardLayout>

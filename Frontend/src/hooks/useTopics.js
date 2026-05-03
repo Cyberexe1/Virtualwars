@@ -2,27 +2,57 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// ── Module-level cache — survives re-renders, cleared on page refresh ────────
+const topicsCache = {
+  all: null,           // all topics array
+  byId: new Map(),     // topicId → topic object
+  timestamp: 0,        // when cache was populated
+};
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function isCacheValid() {
+  return topicsCache.all !== null && Date.now() - topicsCache.timestamp < CACHE_TTL_MS;
+}
+
 /**
- * Fetches all topics from Firestore, with optional category/locale filtering.
- * Falls back to static data if Firestore is unavailable.
+ * Fetches all topics from Firestore with in-memory caching.
+ * Subsequent calls within 5 minutes return cached data — no Firestore reads.
  */
 export function useTopics({ category, locale } = {}) {
-  const [topics, setTopics] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [topics, setTopics] = useState(() => {
+    // Initialise from cache immediately (no loading flash)
+    if (isCacheValid() && !category && !locale) return topicsCache.all;
+    return [];
+  });
+  const [loading, setLoading] = useState(!isCacheValid() || !!category || !!locale);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let q = collection(db, 'topics');
+    // Use cache for unfiltered requests
+    if (!category && !locale && isCacheValid()) {
+      setTopics(topicsCache.all);
+      setLoading(false);
+      return;
+    }
 
+    let q = collection(db, 'topics');
     const constraints = [];
     if (category) constraints.push(where('category', '==', category));
-    if (locale) constraints.push(where('locale', '==', locale));
-
+    if (locale)   constraints.push(where('locale', '==', locale));
     const firestoreQuery = constraints.length > 0 ? query(q, ...constraints) : q;
 
     getDocs(firestoreQuery)
       .then((snapshot) => {
         const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Populate cache for unfiltered requests
+        if (!category && !locale) {
+          topicsCache.all = data;
+          topicsCache.timestamp = Date.now();
+          data.forEach(t => topicsCache.byId.set(t.id, t));
+        }
+
         setTopics(data);
         setLoading(false);
       })
@@ -37,20 +67,29 @@ export function useTopics({ category, locale } = {}) {
 }
 
 /**
- * Fetches a single topic by its Firestore document ID (slug).
+ * Fetches a single topic by ID — uses cache first, falls back to Firestore.
  */
 export function useTopic(topicId) {
-  const [topic, setTopic] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [topic, setTopic] = useState(() => topicsCache.byId.get(topicId) ?? null);
+  const [loading, setLoading] = useState(!topicsCache.byId.has(topicId));
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!topicId) return;
 
+    // Return from cache immediately
+    if (topicsCache.byId.has(topicId)) {
+      setTopic(topicsCache.byId.get(topicId));
+      setLoading(false);
+      return;
+    }
+
     getDoc(doc(db, 'topics', topicId))
       .then((d) => {
         if (d.exists()) {
-          setTopic({ id: d.id, ...d.data() });
+          const t = { id: d.id, ...d.data() };
+          topicsCache.byId.set(topicId, t); // cache for future use
+          setTopic(t);
         } else {
           setError('Topic not found');
         }

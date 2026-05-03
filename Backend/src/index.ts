@@ -66,6 +66,17 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+import * as path from 'path';
+
+// ─── Serve React frontend static files in production ─────────────────────────
+if (IS_PROD) {
+  const publicPath = path.join(__dirname, '..', 'public');
+  app.use(express.static(publicPath, {
+    maxAge: '1y',        // cache static assets for 1 year (Vite uses content hashes)
+    etag: true,
+  }));
+}
+
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/topics', topicsRouter);
 app.use('/api/timeline', timelineRouter);
@@ -74,9 +85,16 @@ app.use('/api/chat', chatRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/translate', translateRouter);
 
-// ─── 404 Handler ─────────────────────────────────────────────────────────────
+// ─── 404 Handler — SPA fallback for React Router ─────────────────────────────
 app.use((_req, res) => {
-  res.status(404).json({ error: 'Route not found', code: 'not-found' });
+  // In production, serve React's index.html for all non-API routes
+  // so React Router handles client-side navigation
+  if (IS_PROD) {
+    const indexPath = path.join(__dirname, '..', 'public', 'index.html');
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Route not found', code: 'not-found' });
+  }
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────

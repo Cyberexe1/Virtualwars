@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.env
+**/serviceAccountKey.json
+**/*.key.json
+**/coverage
+.git
+.kiro
+stitch_*
+README.md

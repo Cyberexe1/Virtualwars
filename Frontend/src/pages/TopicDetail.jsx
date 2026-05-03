@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getAuth } from 'firebase/auth';
 import DashboardLayout from '../components/DashboardLayout';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { useTopic } from '../hooks/useTopics';
@@ -145,18 +146,41 @@ export default function TopicDetail() {
     if (langCode === 'en') { setTranslatedContent(null); return; }
     setTranslating(true);
     try {
+      // Get Firebase ID token — required by the translate endpoint
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      // If user is not logged in, show a helpful message instead of auth error
+      if (!currentUser) {
+        setTranslateError('Please sign in to use the translation feature.');
+        setSelectedLang('en');
+        setTranslating(false);
+        return;
+      }
+
+      const token = await currentUser.getIdToken();
+
       const res = await fetch(`${API_URL}/api/translate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ text: topic.contentMd, targetLang: langCode, isMarkdown: true }),
       });
       const data = await res.json();
-      if (res.ok) setTranslatedContent(data.translated);
-      else { setTranslateError(data.error ?? 'Translation failed'); setSelectedLang('en'); }
+      if (res.ok) {
+        setTranslatedContent(data.translated);
+      } else {
+        setTranslateError(data.error ?? 'Translation failed');
+        setSelectedLang('en');
+      }
     } catch {
-      setTranslateError('Could not connect to translation service.');
+      setTranslateError('Could not connect to translation service. Make sure the backend is running.');
       setSelectedLang('en');
-    } finally { setTranslating(false); }
+    } finally {
+      setTranslating(false);
+    }
   };
 
   if (loading) {
