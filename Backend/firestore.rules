@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read/write their own document
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Topics are public read; writes managed via Admin SDK only
+    match /topics/{topicId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Timelines are public read; writes managed via Admin SDK only
+    match /timelines/{cycleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Conversations scoped to the owning user
+    match /conversations/{uid}/messages/{msgId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
