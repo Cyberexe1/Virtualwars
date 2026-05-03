@@ -2,6 +2,8 @@
 
 > An interactive, AI-powered web application that helps Indian citizens understand the election process, timelines, voting steps, and civic rights in an accessible and easy-to-follow way.
 
+🌐 **Live Demo:** https://civic-clarity-956621523535.us-central1.run.app
+
 ---
 
 ## Chosen Vertical
@@ -22,9 +24,11 @@ Most election information in India is scattered across government portals (eci.g
 - **Accessible** — WCAG 2.1 AA compliant. Supports 9 Indian languages via Google Cloud Translation API.
 - **Progressive** — Users can read topics page by page, track their progress, and resume where they left off.
 - **Conversational** — An AI assistant (Vertex AI Gemini) answers natural language questions about elections.
+- **Secure** — Firebase ID token verification, input sanitization, rate limiting, Helmet CSP headers.
+- **Tested** — 51 passing tests across 8 test files covering middleware, routes, and services.
 
 ### Architecture Decision
-The application follows a **React SPA + Node.js API** architecture:
+The application follows a **React SPA + Node.js API** architecture deployed as a single container on **Google Cloud Run**:
 
 ```
 Browser (React + Vite)
@@ -34,7 +38,7 @@ Browser (React + Vite)
     ├── Firebase Storage   → Media assets
     ├── Google Analytics   → Usage tracking (privacy-safe)
     │
-    └── Node.js Express API (Backend)
+    └── Node.js Express API (Backend) — Cloud Run
             ├── POST /api/chat        → Vertex AI Gemini (AI assistant)
             ├── POST /api/translate   → Google Cloud Translation API
             ├── POST /api/alerts      → Nodemailer (Gmail) email alerts
@@ -48,10 +52,10 @@ Browser (React + Vite)
 ## How the Solution Works
 
 ### 1. User Authentication
-Users can sign in via **Google OAuth**, **email/password**, or continue as a **guest**. Firebase Authentication manages sessions with automatic token refresh. Anonymous users can browse all content; signed-in users get progress tracking.
+Users can sign in via **Google OAuth** (redirect flow), **email/password**, or continue as a **guest**. Firebase Authentication manages sessions with automatic token refresh. Anonymous users can browse all content; signed-in users get progress tracking synced to Firestore.
 
 ### 2. Election Topics Library
-10 structured topics covering the full Indian election cycle are stored in **Cloud Firestore** and seeded via `Backend/seed.js`. Each topic is written in Markdown with headings, bullet lists, numbered steps, and factsheet cards.
+10 structured topics covering the full Indian election cycle are stored in **Cloud Firestore** and seeded via `Backend/seed.js`. Each topic is written in Markdown with headings, bullet lists, numbered steps, and factsheet cards. Topics are cached client-side for 5 minutes to minimize Firestore reads.
 
 Topics covered:
 - Voter Registration (EPIC card, Form 6)
@@ -66,24 +70,67 @@ Topics covered:
 - Civic Rights and Duties of Indian Voters
 
 ### 3. Multi-Page Article Reader
-Each topic is split into pages by `## H2` sections. Users navigate with **Next/Previous** buttons. Progress is saved to `localStorage`. On the last page, a **"Mark as Complete"** button appears. Once clicked, the topic card on the Topics page changes from "Read Topic" → "Resume Reading" → "Review".
+Each topic is split into pages by `## H2` sections. Users navigate with **Next/Previous** buttons. Progress is saved to `localStorage` and synced to Firestore. On the last page, a **"Mark as Complete"** button appears. The Topics page button label updates: "Read Topic" → "Resume Reading" → "Review".
 
 ### 4. AI Chat Assistant
-The **Ask AI** page uses **Vertex AI Gemini 1.5 Flash** via a Node.js Cloud Function. The system prompt enforces non-partisan, plain-language responses about Indian elections. Conversation history (last 20 turns) is stored in Firestore per user. Users can navigate from any topic directly to the chat with the topic pre-loaded as context.
+The **Ask AI** page uses **Vertex AI Gemini 1.5 Flash** via a Node.js backend. The system prompt enforces non-partisan, plain-language responses about Indian elections. Conversation history (last 20 turns) is stored in Firestore per user. Users can navigate from any topic directly to the chat with the topic pre-loaded as context.
 
 ### 5. Election Timeline
-An interactive visual timeline of the **2024 Lok Sabha General Elections** (7 phases, Apr 19 – Jun 1) is stored in Firestore. Users can download it as a PNG image using `html2canvas`. The **Get Alerts** button sends a formatted email via **Nodemailer + Gmail App Password** with all key election dates.
+An interactive visual timeline of the **2024 Lok Sabha General Elections** (7 phases, Apr 19 – Jun 1) is stored in Firestore. Users can:
+- **Download** it as a PNG image using `html2canvas`
+- **Get Alerts** — sends a formatted HTML email via Nodemailer + Gmail with all key election dates
 
 ### 6. Google Translate Integration
-On any topic detail page, users can translate the full article into 9 Indian languages (Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi) using the **Google Cloud Translation API**. Translation is done server-side via `POST /api/translate` to keep the API key secure.
+On any topic detail page, users can translate the full article into 9 Indian languages (Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi) using the **Google Cloud Translation API**. Translation is done server-side via `POST /api/translate` (requires Firebase ID token) to keep the API key secure.
 
 ### 7. Dashboard
 The authenticated user dashboard shows:
-- Real-time learning progress ring (% of topics completed)
-- Topics Viewed and Questions Asked counters from Firestore
+- Real-time learning progress ring (% of topics completed) from Firestore
+- Topics Viewed and Questions Asked counters
 - "Continue Learning" cards — next unread topics from Firestore
 - Recent activity feed — recently completed topics with dates
 - Badges that unlock at 1, 3, 5, and 10 completed topics
+
+---
+
+## Code Quality
+
+- **0 ESLint errors** across all 17 frontend files
+- **0 TypeScript compilation errors** on backend (strict mode)
+- Shared components — `DashboardLayout`, `NavBar`, `Footer`, `DashboardSidebar`, `MarkdownRenderer`
+- Zod schema validation on every API input
+- JSDoc comments on all middleware and services
+- `useMemo` + `React.memo` on expensive computations
+- Module-level Firestore cache with 5-minute TTL
+
+## Security
+
+- Firebase ID token verification on all protected endpoints
+- Input sanitization — strips `<script>` blocks, HTML tags, dangerous characters
+- Firestore security rules — users can only access their own data
+- `helmet()` — full CSP, X-Frame-Options, hidePoweredBy
+- CORS restricted to specific origins
+- Rate limiting — 3/15min on alerts, 20/min on translate
+- Path traversal prevention on all URL params
+- Body size limit `10kb`, error messages sanitized in production
+
+## Testing — 51/51 Tests Passing
+
+```
+Test Files  8 passed
+Tests       51 passed
+```
+
+| Test File | Tests | Coverage Area |
+|---|---|---|
+| `sanitize.test.ts` | 7 | Input sanitization + Property 1 (idempotency) |
+| `contentService.test.ts` | 16 | Markdown parsing + Property 2 (round-trip) |
+| `verifyToken.test.ts` | 4 | Auth middleware |
+| `rateLimit.test.ts` | 4 | Rate limiting |
+| `topics.test.ts` | 3 | Topics route |
+| `timeline.test.ts` | 3 | Timeline route |
+| `translateService.test.ts` | 10 | Google Translate integration |
+| `vertexService.test.ts` | 4 | Vertex AI error handling |
 
 ---
 
@@ -98,7 +145,7 @@ The authenticated user dashboard shows:
 | 5 | **Google Analytics for Firebase** | Session tracking, topic completion events |
 | 6 | **Vertex AI (Gemini 1.5 Flash)** | AI chat assistant for election Q&A |
 | 7 | **Google Cloud Translation API** | Translate topics into 9 Indian languages |
-| 8 | **Google Fonts** | Public Sans + Lexend typography (via fonts.googleapis.com) |
+| 8 | **Google Fonts** | Public Sans + Lexend typography |
 
 ---
 
@@ -106,15 +153,16 @@ The authenticated user dashboard shows:
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, Tailwind CSS, React Router v6 |
-| Backend | Node.js 22, Express 4, TypeScript |
+| Frontend | React 19, Vite 8, Tailwind CSS, React Router v7 |
+| Backend | Node.js 20, Express 4, TypeScript 5 (strict) |
 | Database | Cloud Firestore |
 | Auth | Firebase Authentication |
 | AI | Vertex AI Gemini 1.5 Flash |
 | Translation | Google Cloud Translation API v2 |
 | Email | Nodemailer + Gmail App Password |
 | Image Export | html2canvas |
-| Hosting | Firebase Hosting |
+| Deployment | Google Cloud Run (single container) |
+| Testing | Vitest, fast-check (property-based) |
 
 ---
 
@@ -124,22 +172,24 @@ The authenticated user dashboard shows:
 NewProject/
 ├── Frontend/                  # React + Vite SPA
 │   ├── src/
-│   │   ├── components/        # NavBar, Footer, DashboardLayout, Sidebar, AlertModal
+│   │   ├── components/        # NavBar, Footer, DashboardLayout, Sidebar, AlertModal, MarkdownRenderer
 │   │   ├── context/           # AuthContext (Firebase Auth)
-│   │   ├── hooks/             # useTopics, useProgress
+│   │   ├── hooks/             # useTopics (cached), useProgress (Firestore sync)
 │   │   ├── pages/             # Landing, Signup, Dashboard, Topics, TopicDetail, Chat, Timeline
 │   │   └── firebase.js        # Firebase SDK initialisation
-│   └── .env                   # Firebase web config (not committed)
+│   └── .env.example           # Environment variable template
 │
 ├── Backend/                   # Node.js + Express API
 │   ├── src/
-│   │   ├── routes/            # topics, timeline, progress, chat, alerts, translate
-│   │   ├── services/          # firebaseAdmin, vertexService, emailService, translateService, contentService
+│   │   ├── middleware/        # verifyToken, sanitize, rateLimit (+ tests)
+│   │   ├── routes/            # topics, timeline, progress, chat, alerts, translate (+ tests)
+│   │   ├── services/          # firebaseAdmin, vertexService, emailService, translateService, contentService (+ tests)
 │   │   └── index.ts           # Express app entry point
 │   ├── seed.js                # Firestore data seeder (10 topics + timeline)
-│   ├── firestore.rules        # Firestore security rules
-│   └── .env                   # Backend secrets (not committed)
+│   └── firestore.rules        # Firestore security rules
 │
+├── Dockerfile                 # Single container: Express serves React + API
+├── deploy.ps1                 # Cloud Run deployment script
 └── README.md
 ```
 
@@ -148,7 +198,7 @@ NewProject/
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - Firebase project with Authentication (Google + Email/Password) and Firestore enabled
 - Google Cloud project with Translation API enabled (optional)
 - Gmail account with App Password for email alerts (optional)
@@ -156,13 +206,8 @@ NewProject/
 ### 1. Clone and install
 
 ```bash
-# Frontend
-cd Frontend
-npm install
-
-# Backend
-cd ../Backend
-npm install
+cd Frontend && npm install
+cd ../Backend && npm install
 ```
 
 ### 2. Configure environment variables
@@ -197,23 +242,35 @@ Save as `Backend/serviceAccountKey.json`.
 ### 4. Seed Firestore data
 
 ```bash
-cd Backend
-node seed.js
+cd Backend && node seed.js
 ```
 
-### 5. Run the application
+### 5. Run locally
 
 ```bash
-# Terminal 1 — Backend
-cd Backend
-npm run dev
+# Terminal 1
+cd Backend && npm run dev
 
-# Terminal 2 — Frontend
-cd Frontend
-npm run dev
+# Terminal 2
+cd Frontend && npm run dev
 ```
 
 Open `http://localhost:5173`
+
+### 6. Run tests
+
+```bash
+cd Backend && npm run test:run
+# 51 tests, 8 test files, all passing
+```
+
+### 7. Deploy to Cloud Run
+
+```bash
+cd Frontend && npm run build  # build frontend first
+cd ..
+.\deploy.ps1                  # deploy both frontend + backend as one container
+```
 
 ---
 
@@ -223,31 +280,35 @@ Open `http://localhost:5173`
 
 2. **Firestore as source of truth** — Topic content and timelines are stored in Firestore and seeded via `seed.js`. The frontend reads directly from Firestore (no REST layer needed for public content).
 
-3. **localStorage for progress** — User reading progress (current page, completion status) is stored in `localStorage` for simplicity. In production, this would sync to Firestore under `users/{uid}.progress`.
+3. **localStorage + Firestore for progress** — User reading progress is stored in `localStorage` for instant access and synced to Firestore for cross-device persistence.
 
 4. **Vertex AI requires billing** — The Gemini API via Vertex AI requires a Google Cloud project with billing enabled. The chat feature falls back to a static response engine if the backend is not running.
 
 5. **Google Translate API key** — The translation feature requires a valid `GOOGLE_TRANSLATE_API_KEY`. Without it, the translate buttons show an error. The rest of the app works without it.
 
-6. **Gmail App Password** — Email alerts require a Gmail account with 2-Step Verification and an App Password. Without it, the Get Alerts feature shows a connection error.
+6. **Gmail App Password** — Email alerts require a Gmail account with 2-Step Verification and an App Password.
 
-7. **Demo credentials** — The app includes demo credentials (`demo@civicclarity.in` / `India@2024`) for testing the email/password flow without a real Firebase user. These are mock credentials handled client-side.
+7. **Demo credentials** — The app includes demo credentials (`demo@civicclarity.in` / `India@2024`) for testing the email/password flow without a real Firebase user.
 
 8. **Non-partisan content** — All election content is written to be factual and non-partisan, sourced from ECI guidelines. The AI system prompt enforces this constraint.
 
+9. **Single container deployment** — Frontend (React static files) and Backend (Express API) are served from the same Cloud Run container. The Express server serves the React app at `/` and the API at `/api/*`.
+
 ---
 
-## Demo
+## Live Application
 
-| Page | URL | Description |
+| Page | Path | Description |
 |---|---|---|
 | Landing | `/` | Hero, features, CTA |
 | Sign In | `/signup` | Google OAuth + Email/Password + Guest |
-| Dashboard | `/dashboard` | Progress, stats, recent activity |
-| Topics | `/topics` | All 10 election topics with search + filter |
-| Topic Detail | `/topics/:id` | Multi-page article reader with translate |
+| Dashboard | `/dashboard` | Progress ring, stats, recent activity |
+| Topics | `/topics` | 10 election topics with search + filter |
+| Topic Detail | `/topics/:id` | Multi-page reader with 9-language translate |
 | AI Chat | `/chat` | Ask questions about Indian elections |
-| Timeline | `/timeline` | 2024 Lok Sabha timeline, download + alerts |
+| Timeline | `/timeline` | 2024 Lok Sabha timeline, download PNG + email alerts |
+
+**Live URL:** https://civic-clarity-956621523535.us-central1.run.app
 
 ---
 

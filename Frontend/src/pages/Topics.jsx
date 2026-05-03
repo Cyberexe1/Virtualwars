@@ -112,7 +112,7 @@ export default function Topics() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Completed', value: completedCount, icon: 'check_circle', color: 'text-secondary', bg: 'bg-secondary/10 border-secondary/20' },
             { label: 'In Progress', value: inProgressCount, icon: 'pending', color: 'text-primary-container', bg: 'bg-primary-fixed/40 border-primary-fixed' },

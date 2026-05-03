@@ -83,16 +83,16 @@ export default function Timeline() {
             <span className="font-['Public_Sans'] text-[12px] font-bold tracking-widest uppercase text-primary mb-2 block">
               2024 LOK SABHA ELECTION CYCLE — INDIA
             </span>
-            <h1 className="font-['Public_Sans'] text-[40px] font-bold text-on-surface mb-4">Election Roadmap</h1>
+            <h1 className="font-['Public_Sans'] text-[28px] md:text-[40px] font-bold text-on-surface mb-4">Election Roadmap</h1>
             <p className="font-['Lexend'] text-[18px] text-on-surface-variant">
               Track critical deadlines, registration windows, and voting phases for India's General Elections. Stay informed through every step of the democratic process.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary-fixed duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary-fixed duration-200 disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px]"
             >
               {downloading ? (
                 <>
@@ -108,7 +108,7 @@ export default function Timeline() {
             </button>
             <button
               onClick={() => setShowAlertModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:opacity-90 duration-200"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:opacity-90 duration-200 min-h-[44px]"
             >
               <span className="material-symbols-outlined text-[20px]">notifications</span>
               Get Alerts

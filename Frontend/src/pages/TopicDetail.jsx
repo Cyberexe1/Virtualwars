@@ -265,7 +265,7 @@ export default function TopicDetail() {
                 />
               </div>
               {/* Page dots */}
-              <div className="flex gap-1.5 mt-2 justify-center">
+              <div className="flex flex-wrap gap-1.5 mt-2 justify-center">
                 {pages.map((_, i) => (
                   <button
                     key={i}
@@ -338,7 +338,7 @@ export default function TopicDetail() {
         </div>
 
         {/* Content card */}
-        <div className="bg-white border border-[#DEE2E6] rounded-xl p-6 md:p-8 relative">
+        <div className="bg-white border border-[#DEE2E6] rounded-xl p-4 md:p-8 relative">
           {translating && (
             <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center z-10">
               <span className="material-symbols-outlined text-primary-container text-[36px] animate-spin">progress_activity</span>

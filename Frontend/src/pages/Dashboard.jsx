@@ -91,12 +91,12 @@ export default function Dashboard() {
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="font-['Public_Sans'] text-[40px] font-bold text-primary">Welcome back, {displayName}</h1>
+            <h1 className="font-['Public_Sans'] text-[28px] md:text-[40px] font-bold text-primary">Welcome back, {displayName}</h1>
             <p className="font-['Lexend'] text-[18px] text-on-surface-variant">
               {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to="/chat" className="bg-white border border-[#DEE2E6] text-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-surface-container-low transition-colors">
               <span className="material-symbols-outlined text-lg">help_outline</span>
               Ask a Question
@@ -169,7 +169,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stats cards */}
-          <div className="md:col-span-4 grid grid-rows-2 gap-4">
+          <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-1 md:grid-rows-2 gap-4">
             <div className="bg-primary-container text-white p-6 rounded-lg flex flex-col justify-between">
               <span className="font-['Public_Sans'] text-[11px] font-bold uppercase tracking-widest text-on-primary-container">Topics Viewed</span>
               <div className="flex items-end justify-between">

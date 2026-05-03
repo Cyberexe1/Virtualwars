@@ -124,7 +124,7 @@ export default function Chat() {
     <DashboardLayout>
       {/* Full-height chat container that fills the remaining space */}
       <div className="flex flex-col bg-white border border-[#DEE2E6] rounded-lg overflow-hidden"
-        style={{ height: 'calc(100vh - 140px)', minHeight: '500px' }}>
+        style={{ height: 'calc(100vh - 120px)', minHeight: '500px' }}>
 
         {/* ── Chat header bar ── */}
         <div className="flex items-center gap-3 px-5 py-3 border-b border-[#DEE2E6] bg-surface-container-low flex-shrink-0">

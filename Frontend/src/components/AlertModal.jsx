@@ -48,7 +48,7 @@ export default function AlertModal({ onClose }) {
       aria-modal="true"
       aria-labelledby="alert-modal-title"
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="bg-primary px-6 py-5 flex items-start justify-between">

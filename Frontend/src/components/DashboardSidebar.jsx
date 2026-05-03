@@ -25,11 +25,11 @@ export default function DashboardSidebar() {
 
   return (
     <aside className="w-full md:w-64 flex-shrink-0">
-      <div className="sticky top-24 space-y-6">
+      <div className="md:sticky md:top-24 space-y-6">
         {/* User card + nav */}
         <div className="bg-white border border-[#DEE2E6] rounded-lg overflow-hidden">
-          {/* User profile */}
-          <div className="flex items-center gap-3 px-4 pt-5 pb-4">
+          {/* User profile — hidden on mobile to save space */}
+          <div className="hidden md:flex items-center gap-3 px-4 pt-5 pb-4">
             <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
               {displayName[0].toUpperCase()}
             </div>
@@ -41,42 +41,48 @@ export default function DashboardSidebar() {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-[#DEE2E6]"></div>
+          {/* Divider — only on desktop */}
+          <div className="hidden md:block border-t border-[#DEE2E6]"></div>
 
-          {/* Nav links */}
-          <nav className="py-2">
-            {NAV_ITEMS.map(({ icon, label, to }) => {
-              const active = location.pathname === to;
-              return (
-                <Link
-                  key={label}
-                  to={to}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors relative ${
-                    active
-                      ? 'bg-surface-container-low text-primary font-semibold'
-                      : 'text-on-surface-variant hover:bg-surface-container-lowest hover:text-on-surface'
-                  }`}
-                >
-                  {/* Active left border */}
-                  {active && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-sm"></span>
-                  )}
-                  <span
-                    className="material-symbols-outlined text-[22px]"
-                    style={active ? { fontVariationSettings: "'FILL' 1" } : {}}
+          {/* Nav links — horizontal scroll on mobile, vertical on desktop */}
+          <nav className="py-1 md:py-2 overflow-x-auto">
+            <div className="flex flex-row md:flex-col min-w-max md:min-w-0">
+              {NAV_ITEMS.map(({ icon, label, to }) => {
+                const active = location.pathname === to;
+                return (
+                  <Link
+                    key={label}
+                    to={to}
+                    className={`flex items-center gap-2 md:gap-3 px-4 py-3 transition-colors relative flex-shrink-0 ${
+                      active
+                        ? 'bg-surface-container-low text-primary font-semibold'
+                        : 'text-on-surface-variant hover:bg-surface-container-lowest hover:text-on-surface'
+                    }`}
                   >
-                    {icon}
-                  </span>
-                  <span className="text-[15px]">{label}</span>
-                </Link>
-              );
-            })}
+                    {/* Active left border — desktop only */}
+                    {active && (
+                      <span className="hidden md:block absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-sm"></span>
+                    )}
+                    {/* Active bottom border — mobile only */}
+                    {active && (
+                      <span className="md:hidden absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-sm"></span>
+                    )}
+                    <span
+                      className="material-symbols-outlined text-[22px]"
+                      style={active ? { fontVariationSettings: "'FILL' 1" } : {}}
+                    >
+                      {icon}
+                    </span>
+                    <span className="text-[14px] md:text-[15px] whitespace-nowrap">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
         </div>
 
-        {/* Did You Know card */}
-        <div className="bg-[#EEF2FF] border-l-4 border-primary rounded-r-lg p-4">
+        {/* Did You Know card — hidden on mobile */}
+        <div className="hidden md:block bg-[#EEF2FF] border-l-4 border-primary rounded-r-lg p-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">
             Did You Know?
           </p>

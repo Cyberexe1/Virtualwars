@@ -22,7 +22,7 @@ export default function Landing() {
               <span className="inline-block px-3 py-1 bg-primary-fixed text-on-primary-fixed font-['Public_Sans'] text-[11px] font-bold tracking-widest uppercase mb-6 rounded-sm">
                 Official Non-Partisan Resource — India
               </span>
-              <h1 className="font-['Public_Sans'] text-[40px] font-bold leading-tight tracking-tight text-primary mb-6">
+              <h1 className="font-['Public_Sans'] text-[28px] md:text-[40px] font-bold leading-tight tracking-tight text-primary mb-6">
                 Empowering Your Voice Through Education
               </h1>
               <p className="font-['Lexend'] text-[18px] text-on-surface-variant mb-8 max-w-lg leading-relaxed">
@@ -31,14 +31,14 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleGetStarted}
-                  className="bg-primary text-white h-[48px] px-8 font-semibold rounded-lg hover:opacity-95 transition-all shadow-md flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-primary text-white h-[48px] px-8 font-semibold rounded-lg hover:opacity-95 transition-all shadow-md flex items-center justify-center gap-2"
                 >
                   Get Started
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </button>
                 <Link
                   to="/timeline"
-                  className="border-2 border-primary text-primary h-[48px] px-8 font-semibold rounded-lg hover:bg-primary-fixed/20 transition-all flex items-center justify-center"
+                  className="w-full sm:w-auto border-2 border-primary text-primary h-[48px] px-8 font-semibold rounded-lg hover:bg-primary-fixed/20 transition-all flex items-center justify-center"
                 >
                   View Election Timeline
                 </Link>
@@ -65,7 +65,7 @@ export default function Landing() {
                 { value: '28+', label: 'States & UTs Covered' },
                 { value: '24/7', label: 'Educational Access' },
               ].map(({ value, label }, i) => (
-                <div key={label} className={`p-6 ${i === 1 ? 'border-x border-outline-variant' : ''}`}>
+                <div key={label} className={`p-6 ${i === 1 ? 'md:border-x md:border-outline-variant' : ''}`}>
                   <div className="font-['Public_Sans'] text-[32px] font-semibold text-primary mb-2">{value}</div>
                   <p className="font-['Public_Sans'] text-[12px] font-bold tracking-widest uppercase text-on-surface-variant">{label}</p>
                 </div>
@@ -85,7 +85,7 @@ export default function Landing() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* AI card */}
-              <div className="md:col-span-7 bg-surface-container-lowest p-8 border-l-4 border-primary shadow-sm hover:shadow-md transition-all rounded-r-lg">
+              <div className="col-span-12 md:col-span-7 bg-surface-container-lowest p-6 md:p-8 border-l-4 border-primary shadow-sm hover:shadow-md transition-all rounded-r-lg">
                 <span className="material-symbols-outlined text-primary text-4xl mb-4 block">smart_toy</span>
                 <h3 className="font-['Public_Sans'] text-[24px] font-semibold mb-3">Conversational AI</h3>
                 <p className="font-['Lexend'] text-[16px] text-on-surface-variant mb-6">
@@ -96,7 +96,7 @@ export default function Landing() {
                 </Link>
               </div>
               {/* Progress card */}
-              <div className="md:col-span-5 bg-surface-container-lowest p-8 border-l-4 border-secondary shadow-sm hover:shadow-md transition-all rounded-r-lg">
+              <div className="col-span-12 md:col-span-5 bg-surface-container-lowest p-6 md:p-8 border-l-4 border-secondary shadow-sm hover:shadow-md transition-all rounded-r-lg">
                 <span className="material-symbols-outlined text-secondary text-4xl mb-4 block">auto_graph</span>
                 <h3 className="font-['Public_Sans'] text-[24px] font-semibold mb-3">Learning Progress</h3>
                 <p className="font-['Lexend'] text-[16px] text-on-surface-variant mb-6">
@@ -112,7 +112,7 @@ export default function Landing() {
                 </div>
               </div>
               {/* Timeline card */}
-              <div className="md:col-span-12 bg-surface-container-lowest p-8 border-l-4 border-primary shadow-sm hover:shadow-md transition-all rounded-r-lg">
+              <div className="col-span-12 bg-surface-container-lowest p-6 md:p-8 border-l-4 border-primary shadow-sm hover:shadow-md transition-all rounded-r-lg">
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                   <div>
                     <span className="material-symbols-outlined text-primary text-4xl mb-4 block">timeline</span>
@@ -154,13 +154,13 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <button
                 onClick={handleGetStarted}
-                className="bg-white text-primary px-10 h-[56px] rounded-lg font-bold text-lg hover:bg-gray-50 transition-all shadow-xl"
+                className="w-full sm:w-auto bg-white text-primary px-10 h-[56px] rounded-lg font-bold text-lg hover:bg-gray-50 transition-all shadow-xl"
               >
                 Get Started Free
               </button>
               <Link
                 to="/timeline"
-                className="border-2 border-on-primary-container text-on-primary-container px-10 h-[56px] rounded-lg font-bold text-lg hover:bg-primary-container transition-all flex items-center justify-center"
+                className="w-full sm:w-auto border-2 border-on-primary-container text-on-primary-container px-10 h-[56px] rounded-lg font-bold text-lg hover:bg-primary-container transition-all flex items-center justify-center"
               >
                 Explore Timeline
               </Link>
